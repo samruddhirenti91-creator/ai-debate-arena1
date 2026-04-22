@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Debate Arena</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@400;600&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #c9a84c;
+    --gold-light: #f0d080;
+    --gold-dim: #7a6030;
+    --red: #c0392b;
+    --blue: #1a6fa8;
+    --red-glow: rgba(192,57,43,0.3);
+    --blue-glow: rgba(26,111,168,0.3);
+    --bg: #0a0806;
+    --bg2: #110e09;
+    --bg3: #1a1510;
+    --text: #e8dcc8;
+    --text-dim: #a09070;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Crimson Pro', serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse 60% 40% at 20% 50%, rgba(192,57,43,0.06) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 40% at 80% 50%, rgba(26,111,168,0.06) 0%, transparent 70%),
+      radial-gradient(ellipse 80% 60% at 50% 100%, rgba(201,168,76,0.04) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Noise texture */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 20px 60px;
+  }
+
+  /* Header */
+  header {
+    text-align: center;
+    padding: 50px 20px 30px;
+    position: relative;
+  }
+
+  .arena-badge {
+    display: inline-block;
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--gold-dim);
+    border: 1px solid var(--gold-dim);
+    padding: 5px 18px;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+  }
+
+  h1 {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(28px, 6vw, 58px);
+    font-weight: 900;
+    background: linear-gradient(180deg, var(--gold-light) 0%, var(--gold) 50%, var(--gold-dim) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.1;
+    margin-bottom: 10px;
+    filter: drop-shadow(0 0 30px rgba(201,168,76,0.2));
+  }
+
+  .subtitle {
+    font-family: 'Crimson Pro', serif;
+    font-style: italic;
+    color: var(--text-dim);
+    font-size: 18px;
+    margin-bottom: 8px;
+  }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin: 25px auto;
+    max-width: 400px;
+  }
+  .divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold-dim));
+  }
+  .divider::after { background: linear-gradient(90deg, var(--gold-dim), transparent); }
+  .divider span { color: var(--gold); font-size: 18px; }
+
+  /* Setup Card */
+  .setup-card {
+    background: linear-gradient(135deg, var(--bg2) 0%, var(--bg3) 100%);
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 4px;
+    padding: 40px;
+    margin-bottom: 40px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .setup-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+
+  .setup-title {
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 28px;
+    text-align: center;
+  }
+
+  .topics-grid {
+    display: grid;
+    grid-template-columns: 1fr 60px 1fr;
+    gap: 0;
+    align-items: start;
+    margin-bottom: 30px;
+  }
+
+  .topic-side { }
+  .topic-vs {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 32px;
+  }
+  .vs-badge {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 1px solid var(--gold-dim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    color: var(--gold-dim);
+    letter-spacing: 1px;
+  }
+
+  label {
+    display: block;
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .label-red { color: var(--red); }
+  .label-blue { color: var(--blue); }
+
+  input[type="text"], textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid rgba(201,168,76,0.15);
+    color: var(--text);
+    font-family: 'Crimson Pro', serif;
+    font-size: 16px;
+    padding: 12px 16px;
+    border-radius: 3px;
+    outline: none;
+    transition: border-color 0.3s;
+  }
+
+  input[type="text"]:focus { border-color: rgba(201,168,76,0.5); }
+
+  .topic-input-red:focus { border-color: rgba(192,57,43,0.5) !important; box-shadow: 0 0 20px var(--red-glow); }
+  .topic-input-blue:focus { border-color: rgba(26,111,168,0.5) !important; box-shadow: 0 0 20px var(--blue-glow); }
+
+  .rounds-row {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 30px;
+    justify-content: center;
+  }
+
+  .rounds-label {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+
+  .rounds-select {
+    background: var(--bg);
+    border: 1px solid rgba(201,168,76,0.2);
+    color: var(--gold);
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    padding: 8px 16px;
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .begin-btn {
+    display: block;
+    width: 100%;
+    padding: 18px;
+    background: linear-gradient(135deg, rgba(201,168,76,0.15), rgba(201,168,76,0.05));
+    border: 1px solid var(--gold-dim);
+    color: var(--gold-light);
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 15px;
+    letter-spacing: 3px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .begin-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(201,168,76,0.2), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .begin-btn:hover::before { opacity: 1; }
+  .begin-btn:hover { border-color: var(--gold); box-shadow: 0 0 40px rgba(201,168,76,0.15); }
+  .begin-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Arena Stage */
+  #arena-stage { display: none; }
+
+  .arena-header {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 20px;
+    align-items: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: var(--bg2);
+    border: 1px solid rgba(201,168,76,0.1);
+    border-radius: 4px;
+  }
+
+  .fighter-card {
+    padding: 15px 20px;
+    border-radius: 3px;
+  }
+
+  .fighter-card-red {
+    background: linear-gradient(135deg, rgba(192,57,43,0.15), rgba(192,57,43,0.05));
+    border: 1px solid rgba(192,57,43,0.3);
+  }
+
+  .fighter-card-blue {
+    background: linear-gradient(135deg, rgba(26,111,168,0.05), rgba(26,111,168,0.15));
+    border: 1px solid rgba(26,111,168,0.3);
+    text-align: right;
+  }
+
+  .fighter-name {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+  }
+
+  .fighter-name-red { color: var(--red); }
+  .fighter-name-blue { color: #4a9fd4; }
+
+  .fighter-topic {
+    font-family: 'Crimson Pro', serif;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .fighter-style {
+    font-size: 12px;
+    font-family: 'Cinzel', serif;
+    letter-spacing: 1px;
+    margin-top: 4px;
+  }
+  .fighter-style-red { color: rgba(192,57,43,0.7); }
+  .fighter-style-blue { color: rgba(74,159,212,0.7); }
+
+  .arena-center {
+    text-align: center;
+  }
+
+  .round-display {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 11px;
+    color: var(--gold-dim);
+    letter-spacing: 2px;
+    margin-bottom: 5px;
+  }
+
+  .round-num {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 28px;
+    color: var(--gold);
+  }
+
+  /* Debate Feed */
+  .debate-feed {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-bottom: 30px;
+  }
+
+  .argument-card {
+    border-radius: 4px;
+    padding: 28px 30px;
+    position: relative;
+    animation: slideIn 0.5s ease forwards;
+    opacity: 0;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .arg-red {
+    background: linear-gradient(135deg, rgba(192,57,43,0.12), rgba(192,57,43,0.04));
+    border: 1px solid rgba(192,57,43,0.25);
+    border-left: 3px solid var(--red);
+    margin-right: 60px;
+  }
+
+  .arg-blue {
+    background: linear-gradient(135deg, rgba(26,111,168,0.04), rgba(26,111,168,0.12));
+    border: 1px solid rgba(26,111,168,0.25);
+    border-right: 3px solid var(--blue);
+    margin-left: 60px;
+    text-align: right;
+  }
+
+  .arg-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+  }
+
+  .arg-blue .arg-header { flex-direction: row-reverse; }
+
+  .arg-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .avatar-red { background: rgba(192,57,43,0.2); border: 1px solid rgba(192,57,43,0.4); }
+  .avatar-blue { background: rgba(26,111,168,0.2); border: 1px solid rgba(26,111,168,0.4); }
+
+  .arg-meta { }
+  .arg-name {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .arg-name-red { color: var(--red); }
+  .arg-name-blue { color: #4a9fd4; }
+
+  .arg-round-tag {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: 'Cinzel', serif;
+    letter-spacing: 1px;
+  }
+
+  .arg-body {
+    font-size: 16.5px;
+    line-height: 1.75;
+    color: var(--text);
+    font-weight: 300;
+  }
+
+  .technique-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 14px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .badge-red {
+    background: rgba(192,57,43,0.1);
+    border: 1px solid rgba(192,57,43,0.3);
+    color: rgba(220,100,80,0.9);
+  }
+
+  .badge-blue {
+    background: rgba(26,111,168,0.1);
+    border: 1px solid rgba(26,111,168,0.3);
+    color: rgba(74,159,212,0.9);
+  }
+
+  /* Thinking state */
+  .thinking-card {
+    padding: 20px 30px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    animation: slideIn 0.3s ease forwards;
+  }
+
+  .thinking-red {
+    background: rgba(192,57,43,0.06);
+    border: 1px dashed rgba(192,57,43,0.2);
+    margin-right: 60px;
+  }
+
+  .thinking-blue {
+    background: rgba(26,111,168,0.06);
+    border: 1px dashed rgba(26,111,168,0.2);
+    margin-left: 60px;
+    flex-direction: row-reverse;
+  }
+
+  .dots span {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    margin: 0 2px;
+    animation: pulse 1.2s infinite;
+  }
+
+  .dots-red span { background: var(--red); }
+  .dots-blue span { background: var(--blue); }
+
+  .dots span:nth-child(2) { animation-delay: 0.2s; }
+  .dots span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.3; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.1); }
+  }
+
+  .thinking-label {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+  }
+
+  /* Verdict */
+  .verdict-card {
+    background: linear-gradient(135deg, var(--bg2), var(--bg3));
+    border: 1px solid rgba(201,168,76,0.3);
+    border-radius: 4px;
+    padding: 35px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    animation: slideIn 0.6s ease forwards;
+    opacity: 0;
+  }
+
+  .verdict-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+
+  .verdict-title {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 13px;
+    letter-spacing: 4px;
+    color: var(--gold-dim);
+    text-transform: uppercase;
+    margin-bottom: 15px;
+  }
+
+  .verdict-text {
+    font-size: 17px;
+    line-height: 1.7;
+    color: var(--text);
+    max-width: 700px;
+    margin: 0 auto 25px;
+    font-style: italic;
+  }
+
+  /* Technique explainer */
+  .technique-explainer {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 30px;
+  }
+
+  .technique-card {
+    padding: 22px;
+    border-radius: 4px;
+    text-align: left;
+  }
+
+  .tc-red {
+    background: rgba(192,57,43,0.08);
+    border: 1px solid rgba(192,57,43,0.2);
+  }
+
+  .tc-blue {
+    background: rgba(26,111,168,0.08);
+    border: 1px solid rgba(26,111,168,0.2);
+  }
+
+  .tc-title {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .tc-title-red { color: var(--red); }
+  .tc-title-blue { color: #4a9fd4; }
+
+  .tc-body {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-dim);
+  }
+
+  .reset-btn {
+    display: inline-block;
+    margin-top: 30px;
+    padding: 12px 35px;
+    background: transparent;
+    border: 1px solid var(--gold-dim);
+    color: var(--gold-dim);
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.3s;
+  }
+
+  .reset-btn:hover { color: var(--gold); border-color: var(--gold); }
+
+  /* Progress bar */
+  .progress-bar {
+    height: 2px;
+    background: rgba(201,168,76,0.1);
+    border-radius: 1px;
+    margin-bottom: 30px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--red), var(--gold), var(--blue));
+    border-radius: 1px;
+    transition: width 0.5s ease;
+  }
+
+  /* Scroll to bottom */
+  .spacer { height: 20px; }
+
+  @media (max-width: 700px) {
+    .topics-grid { grid-template-columns: 1fr; }
+    .topic-vs { display: none; }
+    .arg-red { margin-right: 20px; }
+    .arg-blue { margin-left: 20px; }
+    .technique-explainer { grid-template-columns: 1fr; }
+    .arena-header { grid-template-columns: 1fr; }
+    .arena-center { order: -1; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="arena-badge">Colosseum of Ideas</div>
+    <h1>AI Debate Arena</h1>
+    <p class="subtitle">Where knowledge clashes & understanding emerges</p>
+    <div class="divider"><span>⚔</span></div>
+  </header>
+
+  <!-- Setup -->
+  <div class="setup-card" id="setup-panel">
+    <div class="setup-title">⚔ Enter the Combatants ⚔</div>
+    <div class="topics-grid">
+      <div class="topic-side">
+        <label class="label-red">🔴 Gladiator Alpha — Position</label>
+        <input type="text" id="topic-red" class="topic-input-red" placeholder="e.g. Solar energy is the future" maxlength="100">
+        <div style="font-size:12px; color:var(--text-dim); margin-top:6px; font-style:italic;">Uses <strong style="color:rgba(192,57,43,0.8)">Zero-Shot</strong> prompting — pure reasoning, no examples</div>
+      </div>
+      <div class="topic-vs"><div class="vs-badge">VS</div></div>
+      <div class="topic-side">
+        <label class="label-blue">🔵 Gladiator Beta — Position</label>
+        <input type="text" id="topic-blue" class="topic-input-blue" placeholder="e.g. Nuclear energy is the future" maxlength="100">
+        <div style="font-size:12px; color:var(--text-dim); margin-top:6px; font-style:italic;">Uses <strong style="color:rgba(74,159,212,0.8)">Few-Shot</strong> prompting — learns from examples first</div>
+      </div>
+    </div>
+
+    <div class="rounds-row">
+      <span class="rounds-label">Rounds of Combat</span>
+      <select class="rounds-select" id="rounds-select">
+        <option value="2">2 Rounds</option>
+        <option value="3" selected>3 Rounds</option>
+        <option value="4">4 Rounds</option>
+      </select>
+    </div>
+
+    <button class="begin-btn" id="begin-btn" onclick="startDebate()">⚔ BEGIN THE DEBATE ⚔</button>
+  </div>
+
+  <!-- Arena -->
+  <div id="arena-stage">
+    <div class="arena-header">
+      <div class="fighter-card fighter-card-red">
+        <div class="fighter-name fighter-name-red">🔴 Gladiator Alpha</div>
+        <div class="fighter-topic" id="display-red">—</div>
+        <div class="fighter-style fighter-style-red">ZERO-SHOT TECHNIQUE</div>
+      </div>
+      <div class="arena-center">
+        <div class="round-display">ROUND</div>
+        <div class="round-num" id="round-display">0</div>
+        <div style="font-size:11px; color:var(--gold-dim); font-family:'Cinzel',serif; letter-spacing:1px;" id="round-of">of 3</div>
+      </div>
+      <div class="fighter-card fighter-card-blue">
+        <div class="fighter-name fighter-name-blue">🔵 Gladiator Beta</div>
+        <div class="fighter-topic" id="display-blue">—</div>
+        <div class="fighter-style fighter-style-blue">FEW-SHOT TECHNIQUE</div>
+      </div>
+    </div>
+
+    <div class="progress-bar">
+      <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+
+    <div class="debate-feed" id="debate-feed"></div>
+    <div class="spacer"></div>
+  </div>
+</div>
+
+<script>
+const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
+
+let debateState = {
+  topicRed: '',
+  topicBlue: '',
+  rounds: 3,
+  currentRound: 0,
+  feed: [],
+  running: false
+};
+
+function startDebate() {
+  const topicRed = document.getElementById('topic-red').value.trim();
+  const topicBlue = document.getElementById('topic-blue').value.trim();
+  const rounds = parseInt(document.getElementById('rounds-select').value);
+
+  if (!topicRed || !topicBlue) {
+    alert('Please enter positions for both gladiators!');
+    return;
+  }
+
+  debateState = { topicRed, topicBlue, rounds, currentRound: 0, feed: [], running: true };
+
+  document.getElementById('setup-panel').style.display = 'none';
+  document.getElementById('arena-stage').style.display = 'block';
+  document.getElementById('display-red').textContent = topicRed;
+  document.getElementById('display-blue').textContent = topicBlue;
+  document.getElementById('round-of').textContent = `of ${rounds}`;
+  document.getElementById('debate-feed').innerHTML = '';
+
+  runDebate();
+}
+
+async function runDebate() {
+  const { topicRed, topicBlue, rounds } = debateState;
+
+  for (let round = 1; round <= rounds; round++) {
+    debateState.currentRound = round;
+    updateProgress(round, rounds);
+    document.getElementById('round-display').textContent = round;
+
+    // Red argues (Zero-Shot)
+    showThinking('red', round);
+    const redArg = await getArgument('red', round, topicRed, topicBlue);
+    removeThinking();
+    debateState.feed.push({ side: 'red', round, text: redArg });
+    appendArgument('red', round, redArg);
+    await sleep(800);
+
+    // Blue argues (Few-Shot)
+    showThinking('blue', round);
+    const blueArg = await getArgument('blue', round, topicRed, topicBlue);
+    removeThinking();
+    debateState.feed.push({ side: 'blue', round, text: blueArg });
+    appendArgument('blue', round, blueArg);
+    await sleep(800);
+  }
+
+  updateProgress(rounds + 1, rounds);
+  await sleep(500);
+  showVerdict();
+}
+
+async function getArgument(side, round, topicRed, topicBlue) {
+  const isRed = side === 'red';
+  const myPosition = isRed ? topicRed : topicBlue;
+  const oppPosition = isRed ? topicBlue : topicRed;
+
+  const previousArgs = debateState.feed.map(f =>
+    `[Round ${f.round} - ${f.side === 'red' ? 'Alpha(Zero-Shot)' : 'Beta(Few-Shot)'}]: ${f.text}`
+  ).join('\n\n');
+
+  let prompt;
+
+  if (isRed) {
+    // Zero-shot: direct instruction, no examples
+    prompt = `You are Gladiator Alpha, a confident debater arguing for: "${myPosition}".
+Your opponent argues for: "${oppPosition}".
+
+${previousArgs ? `Previous debate so far:\n${previousArgs}\n\n` : ''}
+
+This is Round ${round}. Give a powerful, factual argument for your position in 3-4 sentences. Be direct and use real-world facts. ${round > 1 ? 'Address your opponent\'s previous points.' : ''} Do not use bullet points. Speak in first person as a passionate advocate.`;
+  } else {
+    // Few-shot: provide examples of good debate arguments first
+    prompt = `You are Gladiator Beta, a methodical debater arguing for: "${myPosition}".
+Your opponent argues for: "${oppPosition}".
+
+Here are examples of strong debate arguments (few-shot examples):
+
+Example 1 — Topic "Electric vehicles are better than gas cars":
+"Electric vehicles produce zero direct emissions, cutting urban air pollution dramatically. Studies show EV owners spend 60% less on fuel and maintenance annually. Countries like Norway, where EVs are 80% of new sales, have seen measurable drops in city smog levels. The technology is mature, the infrastructure is growing, and the economics are increasingly undeniable."
+
+Example 2 — Topic "Remote work is more productive":
+"Stanford research found remote workers are 13% more productive than office counterparts. Eliminating commutes saves workers an average of 2 hours daily, time that often returns to focused work. Companies like Shopify and GitLab have operated fully remote for years with record revenues. The data consistently shows that trust and flexibility drive better outcomes than surveillance and presence."
+
+Now, following that style — factual, structured, persuasive — write your Round ${round} argument for "${myPosition}" in 3-4 sentences.
+${previousArgs ? `Previous debate:\n${previousArgs}\n\n` : ''}
+${round > 1 ? 'Directly counter your opponent\'s latest point with evidence.' : ''} Use real facts. First person. No bullet points.`;
+  }
+
+  try {
+    const response = await fetch(ANTHROPIC_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await response.json();
+    const text = data.content?.find(b => b.type === 'text')?.text || 'No argument generated.';
+    return text.trim();
+  } catch (err) {
+    return `[Connection error — please check your API access]`;
+  }
+}
+
+async function showVerdict() {
+  const { topicRed, topicBlue, feed } = debateState;
+  const transcript = feed.map(f =>
+    `Round ${f.round} - ${f.side === 'red' ? `Alpha (Zero-Shot) for "${topicRed}"` : `Beta (Few-Shot) for "${topicBlue}"`}:\n${f.text}`
+  ).join('\n\n');
+
+  // Show loading verdict
+  const feed_el = document.getElementById('debate-feed');
+  const loadDiv = document.createElement('div');
+  loadDiv.className = 'verdict-card';
+  loadDiv.style.opacity = '1';
+  loadDiv.innerHTML = `
+    <div class="verdict-title">⚖ The Judge Deliberates...</div>
+    <div class="dots dots-red" style="justify-content:center; display:flex; margin:15px 0;">
+      <span></span><span></span><span></span>
+    </div>`;
+  feed_el.appendChild(loadDiv);
+  scrollToBottom();
+
+  try {
+    const response = await fetch(ANTHROPIC_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: `You are an impartial debate judge. Two AI gladiators just debated.
+
+Gladiator Alpha used ZERO-SHOT prompting (direct reasoning, no examples) to argue for: "${topicRed}"
+Gladiator Beta used FEW-SHOT prompting (guided by examples) to argue for: "${topicBlue}"
+
+Full transcript:
+${transcript}
+
+Write a 3-sentence judge's verdict that:
+1. Summarizes the key insight from both sides so the audience understands BOTH topics deeply
+2. Notes which prompting technique (zero-shot vs few-shot) produced stronger arguments and why
+3. Ends with a thought-provoking takeaway that helps the audience learn from both positions
+
+Be fair, insightful, and educational. No bullet points.`
+        }]
+      })
+    });
+
+    const data = await response.json();
+    const verdict = data.content?.find(b => b.type === 'text')?.text || 'The debate was fierce and illuminating.';
+
+    loadDiv.innerHTML = `
+      <div class="verdict-title">⚖ The Judge's Verdict ⚖</div>
+      <div class="verdict-text">${verdict.trim()}</div>
+      
+      <div class="technique-explainer">
+        <div class="technique-card tc-red">
+          <div class="tc-title tc-title-red">🔴 Zero-Shot Prompting</div>
+          <div class="tc-body">No examples were given. The AI reasoned purely from its training — like asking an expert to improvise. Produces confident, broad arguments but may miss structured depth.</div>
+        </div>
+        <div class="technique-card tc-blue">
+          <div class="tc-title tc-title-blue">🔵 Few-Shot Prompting</div>
+          <div class="tc-body">Example arguments were shown first. The AI learned the style and structure before responding — like briefing a debater. Produces more methodical, evidenced arguments.</div>
+        </div>
+      </div>
+
+      <button class="reset-btn" onclick="resetArena()">↩ New Debate</button>
+    `;
+    scrollToBottom();
+  } catch (err) {
+    loadDiv.innerHTML = `<div class="verdict-title">⚖ Debate Complete</div><div class="verdict-text">The gladiators have spoken. Review the arguments above to form your own verdict.</div><button class="reset-btn" onclick="resetArena()">↩ New Debate</button>`;
+  }
+}
+
+function appendArgument(side, round, text) {
+  const feed = document.getElementById('debate-feed');
+  const isRed = side === 'red';
+  const card = document.createElement('div');
+  card.className = `argument-card ${isRed ? 'arg-red' : 'arg-blue'}`;
+
+  const roundLabels = ['Opening Statement', 'Rebuttal', 'Counter-Attack', 'Closing Argument'];
+  const roundLabel = roundLabels[round - 1] || `Round ${round}`;
+
+  card.innerHTML = `
+    <div class="arg-header">
+      <div class="arg-avatar ${isRed ? 'avatar-red' : 'avatar-blue'}">${isRed ? '⚔' : '🛡'}</div>
+      <div class="arg-meta">
+        <div class="arg-name ${isRed ? 'arg-name-red' : 'arg-name-blue'}">Gladiator ${isRed ? 'Alpha' : 'Beta'}</div>
+        <div class="arg-round-tag">${roundLabel}</div>
+      </div>
+    </div>
+    <div class="arg-body">${text}</div>
+    <div>
+      <span class="technique-badge ${isRed ? 'badge-red' : 'badge-blue'}">
+        ${isRed ? '⚡ Zero-Shot' : '📚 Few-Shot'}
+      </span>
+    </div>
+  `;
+
+  feed.appendChild(card);
+  scrollToBottom();
+}
+
+function showThinking(side, round) {
+  const feed = document.getElementById('debate-feed');
+  const isRed = side === 'red';
+  const div = document.createElement('div');
+  div.className = `thinking-card ${isRed ? 'thinking-red' : 'thinking-blue'}`;
+  div.id = 'thinking-indicator';
+
+  div.innerHTML = `
+    <div class="dots ${isRed ? 'dots-red' : 'dots-blue'}"><span></span><span></span><span></span></div>
+    <div class="thinking-label">Gladiator ${isRed ? 'Alpha' : 'Beta'} is formulating...</div>
+  `;
+
+  feed.appendChild(div);
+  scrollToBottom();
+}
+
+function removeThinking() {
+  const el = document.getElementById('thinking-indicator');
+  if (el) el.remove();
+}
+
+function updateProgress(current, total) {
+  const pct = Math.min((current / (total + 1)) * 100, 100);
+  document.getElementById('progress-fill').style.width = pct + '%';
+}
+
+function scrollToBottom() {
+  setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100);
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function resetArena() {
+  document.getElementById('arena-stage').style.display = 'none';
+  document.getElementById('setup-panel').style.display = 'block';
+  document.getElementById('debate-feed').innerHTML = '';
+  document.getElementById('topic-red').value = '';
+  document.getElementById('topic-blue').value = '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
